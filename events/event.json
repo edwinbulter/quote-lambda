@@ -1,0 +1,9 @@
+{
+  "resource": "Resource path",
+  "path": "/quote",
+  "httpMethod": "POST",
+  "headers": {},
+  "queryStringParameters": {},
+  "body": "[]",
+  "isBase64Encoded": "A boolean flag to indicate if the applicable payload is Base64-encode"
+}

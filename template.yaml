@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: An AWS Serverless Application.
+
+Resources:
+  QuoteLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./  # local path to Lambda function code
+      Handler: ebulter.quote.lambda.QuoteHandler::handleRequest
+      Runtime: java17
+      Timeout: 30
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Scan
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource:
+                Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Quotes
+      Events: # The Events property enables AWS SAM to create an API Gateway
+        GetQuote:
+          Type: Api
+          Properties:
+            Path: /quote
+            Method: get
+        PostQuote:
+          Type: Api
+          Properties:
+            Path: /quote
+            Method: post
+        PatchQuote:
+          Type: Api
+          Properties:
+            Path: /quote/like
+            Method: patch
+
+
