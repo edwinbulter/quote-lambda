@@ -1,2 +1,18 @@
 ### GET Quote
-https://cgkau5xo1b.execute-api.eu-central-1.amazonaws.com/Prod/quote
+GET https://1sq1e5jfuc.execute-api.eu-central-1.amazonaws.com/Prod/quote
+
+### POST Quote
+POST https://1sq1e5jfuc.execute-api.eu-central-1.amazonaws.com/Prod/quote
+Content-Type: application/json
+
+[1,2,3,4,5]
+
+### Like Quote
+PATCH https://1sq1e5jfuc.execute-api.eu-central-1.amazonaws.com/Prod/quote/20/like
+Content-Type: application/json
+
+[]
+
+### GET Liked Quotes
+GET https://1sq1e5jfuc.execute-api.eu-central-1.amazonaws.com/Prod/quote/liked
+

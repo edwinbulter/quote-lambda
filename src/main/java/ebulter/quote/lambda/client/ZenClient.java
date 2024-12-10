@@ -15,34 +15,31 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ZenClient {
-    private static final Logger logger = LoggerFactory.getLogger(ZenClient.class);
-    private static final String URL = "https://zenquotes.io/api/random";
+    private static final String URL = "https://zenquotes.io/api/quotes";
     private static final Gson gson = new Gson();
     private static final Type zenQuoteType = new TypeToken<List<WsZenQuote>>() {}.getType();
 
-    public static Quote getQuote() throws IOException {
-        CloseableHttpClient httpClient = HttpClients.createDefault();
+    public static Set<Quote> getSomeUniqueQuotes() throws IOException {
         HttpGet request = new HttpGet(URL);
-
-        WsZenQuote zenQuote = null;
-        try (CloseableHttpResponse response = httpClient.execute(request)) {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault(); CloseableHttpResponse response = httpClient.execute(request)) {
             String responseBody = EntityUtils.toString(response.getEntity());
-            logger.info("received ZenQuote: " + responseBody);
-            List<WsZenQuote> quotes = gson.fromJson(responseBody, zenQuoteType);
-            if (!quotes.isEmpty()) {
-                zenQuote = quotes.get(0);
-            }
+            List<WsZenQuote> zenQuotes = gson.fromJson(responseBody, zenQuoteType);
+            return mapToUniqueQuotes(zenQuotes);
         }
-        return mapToQuote(zenQuote);
     }
 
-    private static Quote mapToQuote(WsZenQuote wsZenQuote) {
-        if (wsZenQuote != null) {
-            return QuoteMapper.mapToQuote(wsZenQuote);
+    public static Set<Quote> mapToUniqueQuotes(List<WsZenQuote> wsZenQuotes) {
+        if (wsZenQuotes != null) {
+            return wsZenQuotes.stream().map(QuoteMapper::mapToQuote).collect(Collectors.toSet());
         }
-        return null;
+        return new HashSet<>();
     }
+
+
 }

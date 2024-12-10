@@ -96,7 +96,4 @@ image_repositories = []
 >aws cloudformation delete-stack --stack-name quote-lambda
 
 
-## AWS CodePipeline
-
->sam pipeline init --bootstrap
 

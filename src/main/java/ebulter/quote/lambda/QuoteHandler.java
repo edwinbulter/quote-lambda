@@ -2,85 +2,86 @@ package ebulter.quote.lambda;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import ebulter.quote.lambda.client.ZenClient;
 import ebulter.quote.lambda.model.Quote;
-import ebulter.quote.lambda.repository.QuoteRepository;
-import ebulter.quote.lambda.response.GatewayResponse;
+import ebulter.quote.lambda.service.QuoteService;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.lang.reflect.Type;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-public class QuoteHandler implements RequestHandler<Map<String, Object>, GatewayResponse> {
+public class QuoteHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     private static final Logger logger = LoggerFactory.getLogger(QuoteHandler.class);
 
     private static final Gson gson = new Gson();
     private static final Type quoteType = new TypeToken<Quote>() {}.getType();
+    private static final Type quoteListType = new TypeToken<List<Quote>>() {}.getType();
 
-    public GatewayResponse handleRequest(Map<String, Object> event, Context context) {
-        //todo: use the event to derive the action
-        //if path endsWith "/quote" AND httpMethod="GET" then return a random quote
-        //if path endsWith "/quote" AND httpMethod="POST" then use body with ids to return a random quote
-        //if path contains "/quote/like" AND httpMethod="PATCH" then ...
-
-        String path = (String) event.get("path");
-        String httpMethod = (String) event.get("httpMethod");
+    public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent event, Context context) {
+        String path = event.getPath();
+        String httpMethod = event.getHttpMethod();
 
         logger.info("path={}, httpMethod={}", path, httpMethod);
 
-        Quote quote = null;
         if (path.endsWith("/quote")) {
+            Set<Integer> idsToExclude = null;
             if ("GET".equals(httpMethod)) {
-                quote = getQuote(Collections.emptyList());
+                idsToExclude = Collections.emptySet();
             } else if (httpMethod.equals("POST")) {
-                String jsonBody = (String) event.get("body");
-                List<Integer> idList = new Gson().fromJson(jsonBody, new TypeToken<List<Integer>>() {}.getType());
-                quote = getQuote(idList==null ? Collections.emptyList() : idList);
+                String jsonBody = event.getBody();
+                idsToExclude = new Gson().fromJson(jsonBody, new TypeToken<Set<Long>>() {}.getType());
             }
+            Quote quote = QuoteService.getQuote(idsToExclude);
+            return createResponse(quote);
+        } else if (path.endsWith("/like")) {
+            int id = Integer.parseInt(event.getPathParameters().get("id"));
+            Quote quote = QuoteService.likeQuote(id);
+            return createResponse(quote);
+        } else if (path.endsWith("/liked")) {
+            List<Quote> likedQuotes = QuoteService.getLikedQuotes();
+            return createResponse(likedQuotes);
         } else {
-            quote = getErrorQuote("Invalid request");
+            return createErrorResponse("Invalid request");
         }
+    }
+
+    private static APIGatewayProxyResponseEvent createResponse(List<Quote> quoteList) {
+        APIGatewayProxyResponseEvent response = createBaseResponse();
+        response.setStatusCode(HttpStatus.SC_OK);
+        String responseBody = gson.toJson(quoteList, quoteListType);
+        response.setBody(responseBody);
+        return response;
+    }
+
+    private static APIGatewayProxyResponseEvent createResponse(Quote quote) {
+        APIGatewayProxyResponseEvent response = createBaseResponse();
+        response.setStatusCode(HttpStatus.SC_OK);
+        String responseBody = gson.toJson(quote, quoteType);
+        response.setBody(responseBody);
+        return response;
+    }
+
+    private static APIGatewayProxyResponseEvent createErrorResponse(String message) {
+        APIGatewayProxyResponseEvent response = createBaseResponse();
+        response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+        String responseBody = gson.toJson(QuoteService.getErrorQuote(message), quoteType);
+        response.setBody(responseBody);
+        return response;
+    }
+
+    private static APIGatewayProxyResponseEvent createBaseResponse() {
+        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
         Map<String, String> headers = new HashMap<>();
         headers.put("Content-Type", "application/json");
         headers.put("Access-Control-Allow-Origin", "*");  // enable CORS
-
-        String responseBody = gson.toJson(quote, quoteType);
-        return new GatewayResponse(responseBody, headers, 200);
+        response.setHeaders(headers);
+        return response;
     }
 
-    private Quote getQuote(List<Integer> idsToExclude) {
-        try {
-            logger.info("start fetching quote");
-            Quote quote = ZenClient.getQuote();
-            logger.info("Finished fetching quote");
-            if (quote != null) {
-                logger.info("start reading all quotes from DB");
-                List<Quote> allQuotes = QuoteRepository.getAllQuotes();
-                logger.info("finished reading all quotes from DB");
-                quote.setId((long)allQuotes.size() + 1);
-                logger.info("start saving quote with id {}", quote.getId());
-                QuoteRepository.saveQuote(quote);
-                logger.info("finished saving quote with id {}", quote.getId());
-                return quote;
-            }
-        } catch (IOException e) {
-            return getErrorQuote(e.getMessage());
-        }
-        return getErrorQuote("Failed to fetch quote");
-    }
-
-
-    private static Quote getErrorQuote(String errorMessage) {
-        Quote errorQuote = new Quote();
-        errorQuote.setQuoteText(errorMessage);
-        return errorQuote;
-    }
 
 }

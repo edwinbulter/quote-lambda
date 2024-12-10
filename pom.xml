@@ -28,6 +28,11 @@
             <version>1.2.1</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-events</artifactId>
+            <version>3.12.0</version>
+        </dependency>
         <!-- Apache HttpClient for making HTTP requests -->
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
