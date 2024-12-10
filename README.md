@@ -1,5 +1,15 @@
 # AWS Lambda backend for the Quote app
 
+This AWS Lambda backend 
+- fetches quotes from https://zenquotes.io/ and stores them in a DynamoDB table
+- is created to learn about SAM CLI and creating a serverless API with Java, AWS Lambda and ApiGateway 
+- is exposed through ApiGateway and used by the Quote Web App that can be visited at:
+>https://master.d3bgu77svyk8ir.amplifyapp.com/
+
+The code for the Quote Web App can be found at:
+>https://github.com/edwinbulter/quote-lambda
+
+
 ## Project setup with SAM CLI
 [What is SAM CLI?](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam-overview.html#what-is-sam-cli)
 
@@ -8,7 +18,7 @@ You can create an example with:
 
 >sam init --runtime java11 --dependency-manager maven --name quote-lambda
 
-But the structure is not ideal. Restructure it by putting src in the root of your project.
+But the structure is not ideal. Restructure it by moving src to the root of your project.
 
 ### Create a template.yml
 Example contents:
@@ -36,8 +46,6 @@ Resources:
               Resource:
                 Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Quotes
 ```
-
-
 
 ### Create samconfig.toml
 - You can copy this from an example created with sam init
