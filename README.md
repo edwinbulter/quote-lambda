@@ -7,7 +7,7 @@ This AWS Lambda backend
 >https://master.d3bgu77svyk8ir.amplifyapp.com/
 
 The code for the Quote Web App can be found at:
->https://github.com/edwinbulter/quote-lambda
+>https://github.com/edwinbulter/quote-amplify-react
 
 
 ## Project setup with SAM CLI
