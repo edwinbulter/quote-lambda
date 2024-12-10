@@ -90,7 +90,41 @@ image_repositories = []
               Resource:
                 Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Quotes
 ```
-    
+- Create the ApiGateway endpoints to template.yaml:
+```yaml
+      # Add this to the properties section
+      Events: # The Events property enables AWS SAM to create an API Gateway
+        GetQuote:
+          Type: Api
+          Properties:
+            Path: /quote
+            Method: get
+        PostQuote:
+          Type: Api
+          Properties:
+            Path: /quote
+            Method: post
+        PatchLike:
+          Type: Api
+          Properties:
+            Path: /quote/{id}/like
+            Method: patch
+        GetLiked:
+          Type: Api
+          Properties:
+            Path: /quote/liked
+            Method: get
+```
+- Set CrossOrigin in template.yaml for access from the browser
+```yaml
+# Add this at the root level just above resources
+Globals:
+  Api:
+    Cors:
+      AllowOrigin: "'*'"
+      AllowHeaders: "'*'"
+      AllowMethods: "'GET, POST, PATCH, OPTIONS'"
+```
 ## Delete the stack:
 
 >aws cloudformation delete-stack --stack-name quote-lambda
