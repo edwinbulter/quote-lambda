@@ -13,17 +13,20 @@ public class QuoteRepository {
     private static final DynamoDbClient dynamoDb = DynamoDbClient.create();
     private static final String TABLE_NAME = "Quotes";
 
-    public static List<Quote> getAllQuotes() {
+    public QuoteRepository() {
+    }
+
+    public List<Quote> getAllQuotes() {
         ScanResponse scanResponse = dynamoDb.scan(ScanRequest.builder().tableName(TABLE_NAME).build());
         return scanResponse.items().stream().map(item ->
                 new Quote(Integer.parseInt(item.get("id").n()), item.get("quoteText").s(), item.get("author").s(), Integer.parseInt(item.get("likes").n()))).toList();
     }
 
-    public static void saveAll(Set<Quote> quotes) {
-        quotes.forEach(QuoteRepository::saveQuote);
+    public void saveAll(Set<Quote> quotes) {
+        quotes.forEach(this::saveQuote);
     }
 
-    public static void saveQuote(Quote quote) {
+    public void saveQuote(Quote quote) {
         Map<String, AttributeValue> item = new HashMap<>();
         item.put("id", AttributeValue.builder().n(String.valueOf(quote.getId())).build());
         item.put("quoteText", AttributeValue.builder().s(quote.getQuoteText()).build());
@@ -39,7 +42,7 @@ public class QuoteRepository {
 
     }
 
-    public static Quote findById(int id) {
+    public Quote findById(int id) {
         HashMap<String,AttributeValue> keyToGet = new HashMap<>();
         keyToGet.put("id", AttributeValue.builder().n(String.valueOf(id)).build());
         GetItemRequest request = GetItemRequest.builder().tableName(TABLE_NAME).key(keyToGet).build();
@@ -52,7 +55,7 @@ public class QuoteRepository {
         }
     }
 
-    public static void updateLikes(Quote quote) {
+    public void updateLikes(Quote quote) {
         Map<String, AttributeValue> key = new HashMap<>();
         key.put("id", AttributeValue.builder().n(String.valueOf(quote.getId())).build());
 
@@ -72,7 +75,7 @@ public class QuoteRepository {
         dynamoDb.updateItem(updateItemRequest);
     }
 
-    public static List<Quote> getLikedQuotes() {
+    public List<Quote> getLikedQuotes() {
         return getAllQuotes().stream().filter(quote -> quote.getLikes() > 0).sorted((item1, item2) -> {
             int compareLikes = item2.getLikes() - item1.getLikes();
             if (compareLikes != 0) {

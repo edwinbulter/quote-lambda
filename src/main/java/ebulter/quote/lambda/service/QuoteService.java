@@ -3,6 +3,7 @@ package ebulter.quote.lambda.service;
 import ebulter.quote.lambda.client.ZenClient;
 import ebulter.quote.lambda.model.Quote;
 import ebulter.quote.lambda.repository.QuoteRepository;
+import ebulter.quote.lambda.util.QuoteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,20 +16,30 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class QuoteService {
     private static final Logger logger = LoggerFactory.getLogger(QuoteService.class);
+    private final QuoteRepository quoteRepository;
 
-    public static Quote getQuote(final Set<Integer> idsToExclude) {
-        logger.info("start reading all quotes from DB");
-        List<Quote> currentDatabaseQuotes = QuoteRepository.getAllQuotes();
-        logger.info("finished reading all quotes from DB");
-        if (currentDatabaseQuotes.size() < 10 || currentDatabaseQuotes.size() <= idsToExclude.size()) {
+    public QuoteService(QuoteRepository quoteRepository) {
+        this.quoteRepository = quoteRepository;
+    }
+
+    public Quote getQuote(final Set<Integer> idsToExclude) {
+        logger.info("start reading all quotes from DB, idsToExclude.size() = {}", idsToExclude.size());
+        List<Quote> currentDatabaseQuotes = quoteRepository.getAllQuotes();
+        logger.info("finished reading all quotes from DB, read {} quotes from DB", currentDatabaseQuotes.size());
+        if (currentDatabaseQuotes.size() < 5 || currentDatabaseQuotes.size() <= idsToExclude.size()) {
             try {
+                logger.info("start fetching quotes from Zen");
                 Set<Quote> fetchedQuotes = ZenClient.getSomeUniqueQuotes();
+                logger.info("finished fetching quotes from Zen, fetched {} quotes", fetchedQuotes.size());
                 //Note: In the following statement, the quotes are compared (and subsequently removed) solely by quoteText.
                 fetchedQuotes.removeAll(new HashSet<>(currentDatabaseQuotes));
                 AtomicInteger idGenerator = new AtomicInteger(currentDatabaseQuotes.size() + 1);
                 fetchedQuotes.forEach(quote -> quote.setId(idGenerator.getAndIncrement()));
-                QuoteRepository.saveAll(fetchedQuotes);
-                currentDatabaseQuotes = QuoteRepository.getAllQuotes();
+                logger.info("start saving {} quotes", fetchedQuotes.size());
+                quoteRepository.saveAll(fetchedQuotes);
+                logger.info("finished saving {} quotes", fetchedQuotes.size());
+                currentDatabaseQuotes = quoteRepository.getAllQuotes();
+                logger.info("The database now has {} quotes", currentDatabaseQuotes.size());
             } catch (IOException e) {
                 logger.error("Failed to read quotes from ZenQuotes: {}", e.getMessage());
             }
@@ -44,24 +55,19 @@ public class QuoteService {
         }
     }
 
-    public static Quote likeQuote(int idToLike) {
-        Quote quote = QuoteRepository.findById(idToLike);
+    public Quote likeQuote(int idToLike) {
+        Quote quote = quoteRepository.findById(idToLike);
         if (quote != null) {
             quote.setLikes(quote.getLikes() + 1);
-            QuoteRepository.updateLikes(quote);
+            quoteRepository.updateLikes(quote);
             return quote;
         } else {
-            return getErrorQuote("Quote to like not found");
+            return QuoteUtil.getErrorQuote("Quote to like not found");
         }
     }
 
-    public static List<Quote> getLikedQuotes() {
-        return QuoteRepository.getLikedQuotes();
+    public List<Quote> getLikedQuotes() {
+        return quoteRepository.getLikedQuotes();
     }
 
-    public static Quote getErrorQuote(String errorMessage) {
-        Quote errorQuote = new Quote();
-        errorQuote.setQuoteText(errorMessage);
-        return errorQuote;
-    }
 }
