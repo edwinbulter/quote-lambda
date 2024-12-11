@@ -7,6 +7,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import ebulter.quote.lambda.model.Quote;
+import ebulter.quote.lambda.repository.QuoteRepository;
 import ebulter.quote.lambda.service.QuoteService;
 import ebulter.quote.lambda.util.QuoteUtil;
 import org.apache.http.HttpStatus;
@@ -24,6 +25,10 @@ public class QuoteHandler implements RequestHandler<APIGatewayProxyRequestEvent,
     private static final Type quoteListType = new TypeToken<List<Quote>>() {}.getType();
 
     private final QuoteService quoteService;
+
+    public QuoteHandler() {
+        this.quoteService = new QuoteService(new QuoteRepository());
+    }
 
     public QuoteHandler(QuoteService quoteService) {
         this.quoteService = quoteService;
